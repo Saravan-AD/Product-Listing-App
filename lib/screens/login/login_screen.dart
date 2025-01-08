@@ -1,91 +1,91 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../../providers/auth_provider.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+
 import 'otp_screen.dart';
 
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({Key? key}) : super(key: key);
-
+class PhoneNumberScreen extends StatefulWidget {
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  _PhoneNumberScreenState createState() => _PhoneNumberScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _PhoneNumberScreenState extends State<PhoneNumberScreen> {
   final TextEditingController _phoneController = TextEditingController();
+  bool _isLoading = false;
 
-  @override
-  void dispose() {
-    _phoneController.dispose();
-    super.dispose();
+  Future<void> verifyPhoneNumber() async {
+    final phoneNumber = _phoneController.text.trim();
+    if (phoneNumber.isEmpty) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text("Enter a valid phone number")));
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    final response = await http.post(
+      Uri.parse('https://admin.kushinirestaurant.com/api/verify/'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'phone_number': phoneNumber}),
+    );
+
+    setState(() {
+      _isLoading = false;
+    });
+
+    print(response.body);
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      final otp = data['otp'];
+      final userExists = data['user'];
+      if(data.length>2)
+      if (data['token']['access']!=null)
+      {
+      final token = data['token']['access'];
+      // Store token in SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('jwt_token', token);
+      }
+    
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => OtpScreen(
+            phoneNumber: phoneNumber,
+            otp: otp,
+            userExists: userExists,
+          ),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text("Error verifying phone number")));
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Login'),
-      ),
+      appBar: AppBar(title: Text('Phone Number Input')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            const Text(
-              'Enter your phone number:',
-              style: TextStyle(fontSize: 20),
-            ),
-            const SizedBox(height: 20),
             TextField(
               controller: _phoneController,
               keyboardType: TextInputType.phone,
-              decoration: const InputDecoration(
-                labelText: 'Phone Number',
-                hintText: 'Enter phone number',
-              ),
+              decoration: InputDecoration(labelText: 'Phone Number'),
             ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () async {
-                String phoneNumber = _phoneController.text.trim();
-
-                if (phoneNumber.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Please enter a phone number')),
-                  );
-                  return;
-                }
-
-                final authProvider =
-                    Provider.of<AuthProvider>(context, listen: false);
-
-                bool userExists = await authProvider.verifyUser(phoneNumber);
-
-                if (userExists) {
-                  // If user exists, navigate to OTP verification
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => OTPVerificationScreen(
-                        phoneNumber: phoneNumber,
-                      ),
-                    ),
-                  );
-                } else {
-                  // If user does not exist, register and verify
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('User does not exist, registering now...')),
-                  );
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => OTPVerificationScreen(
-                        phoneNumber: phoneNumber,
-                      ),
-                    ),
-                  );
-                }
-              },
-              child: const Text('Submit'),
-            ),
+            SizedBox(height: 16),
+            _isLoading
+                ? CircularProgressIndicator()
+                : ElevatedButton(
+                    onPressed: verifyPhoneNumber,
+                    child: Text('Verify'),
+                  ),
           ],
         ),
       ),

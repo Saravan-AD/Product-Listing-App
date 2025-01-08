@@ -1,82 +1,73 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../../providers/auth_provider.dart';
+import 'package:product_listing_app/main.dart';
 
-class OTPVerificationScreen extends StatefulWidget {
+import 'register_screen.dart';
+
+class OtpScreen extends StatefulWidget {
   final String phoneNumber;
-  const OTPVerificationScreen({Key? key, required this.phoneNumber})
-      : super(key: key);
+  final String otp;
+  final bool userExists;
+
+  OtpScreen({required this.phoneNumber, required this.otp, required this.userExists});
 
   @override
-  State<OTPVerificationScreen> createState() => _OTPVerificationScreenState();
+  _OtpScreenState createState() => _OtpScreenState();
 }
 
-class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
+class _OtpScreenState extends State<OtpScreen> {
   final TextEditingController _otpController = TextEditingController();
-  String? otp;
-  bool isOtpValid = false;
+  bool _isLoading = false;
 
-  @override
-  void dispose() {
-    _otpController.dispose();
-    super.dispose();
+  Future<void> validateOtp() async {
+    final enteredOtp = _otpController.text.trim();
+
+    if (enteredOtp != widget.otp) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text("Invalid OTP")));
+      return;
+    }
+
+    if (widget.userExists) {
+      // User exists, proceed to home
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text("Login Successful")));
+      Navigator.pushAndRemoveUntil(
+  context,
+  MaterialPageRoute(builder: (context) => MainScreen()),
+  (route) => false, // This removes all previous routes
+);
+    } else {
+      // User doesn't exist, prompt for name
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => RegisterScreen(phoneNumber: widget.phoneNumber),
+        ),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('OTP Verification'),
-      ),
+      appBar: AppBar(title: Text('OTP Verification')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            const Text(
-              'Enter the OTP sent to your phone number',
-              style: TextStyle(fontSize: 20),
-            ),
-            const SizedBox(height: 20),
+            Text('Enter the OTP sent to your phone'),
             TextField(
               controller: _otpController,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'OTP',
-                hintText: 'Enter OTP',
-              ),
+              decoration: InputDecoration(labelText: 'OTP'),
             ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () async {
-                String enteredOtp = _otpController.text.trim();
-
-                if (enteredOtp.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Please enter OTP')),
-                  );
-                  return;
-                }
-
-                // Here, we will call the Login/Register API if OTP is valid
-                final authProvider =
-                    Provider.of<AuthProvider>(context, listen: false);
-
-                bool otpValid = await authProvider.validateOtp(
-                    widget.phoneNumber, enteredOtp);
-
-                if (otpValid) {
-                  // If OTP is valid, call the Login/Register API
-                  await authProvider.loginUser(widget.phoneNumber, 'John Doe');
-                  // Navigate to Home Screen after successful login
-                  Navigator.pushReplacementNamed(context, '/home');
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Invalid OTP')),
-                  );
-                }
-              },
-              child: const Text('Verify OTP'),
-            ),
+            SizedBox(height: 16),
+            _isLoading
+                ? CircularProgressIndicator()
+                : ElevatedButton(
+                    onPressed: validateOtp,
+                    child: Text('Submit'),
+                  ),
           ],
         ),
       ),

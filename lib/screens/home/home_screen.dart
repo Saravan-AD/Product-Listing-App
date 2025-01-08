@@ -2,7 +2,6 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:product_listing_app/api/banner_service.dart';
-import 'package:product_listing_app/screens/home/product_grid.dart';
 import '../../api/product_service.dart';
 import '../../models/product.dart';
 import '../wishlist/wishlist_screen.dart';
@@ -30,7 +29,6 @@ Future<void> _searchProducts(String query) async {
     });
 
     if (query.isEmpty) {
-      // If query is empty, reset the filtered products to show all products
       setState(() {
         _filteredProducts = _products;
         _message = '';
@@ -49,7 +47,7 @@ Future<void> _searchProducts(String query) async {
       if (data is List && data.isNotEmpty) {
         setState(() {
           _filteredProducts = data
-              .map((productJson) => Product.fromJson(productJson)) // Assuming you have a Product.fromJson constructor
+              .map((productJson) => Product.fromJson(productJson)) 
               .toList();
           _message = '';
         });
@@ -169,19 +167,9 @@ Future<void> _searchProducts(String query) async {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Featured Products',
+                      'Popolar Products',
                       style:
                           TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                    TextButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => ProductListScreen()),
-                        );
-                      },
-                      child: Text('View All'),
                     ),
                   ],
                 ),

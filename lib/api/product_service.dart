@@ -3,7 +3,6 @@ import 'package:http/http.dart' as http;
 import '/../models/product.dart';
 
 class ProductService {
-  // Fetch product data from the API
   Future<List<Product>> fetchProducts() async {
     final response = await http.get(Uri.parse('https://admin.kushinirestaurant.com/api/products'));
 
